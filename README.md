@@ -132,8 +132,3 @@ var/
 ```bash
 curl -X POST http://localhost:8080/api/login   -H "Content-Type: application/json"   -d '{"email":"admin@local","password":"admin123"}'
 ```
-
----
-
-## 📖 Лицензия
-MIT
