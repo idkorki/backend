@@ -23,7 +23,7 @@
 ## Установка
 ```bash
 # клонировать репозиторий
-git clone https://github.com/<yourname>/backend.git
+git clone https://github.com/idkorki/backend.git
 cd backend
 
 # установить зависимости
