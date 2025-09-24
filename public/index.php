@@ -21,27 +21,47 @@ $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
 
 $app->add(function ($request, $handler) use ($container) {
-    $origin = '*';
+    // Origin запроса от браузера
+    $reqOrigin = $request->getHeaderLine('Origin');
+
+    $allowed = '*';
     if ($container->has('settings')) {
         $s = $container->get('settings');
-        $origin = $s['cors']['origin'] ?? '*';
+        $allowed = $s['cors']['origin'] ?? '*';
+    }
+
+    $originHeader = null;
+    if (is_array($allowed)) {
+        if (in_array($reqOrigin, $allowed, true)) {
+            $originHeader = $reqOrigin;
+        }
+    } else {
+        $originHeader = ($allowed === '*') ? $reqOrigin : $allowed;
     }
 
     if (strtoupper($request->getMethod()) === 'OPTIONS') {
         $pre = new SlimResponse(200);
-        return $pre
-            ->withHeader('Access-Control-Allow-Origin', $origin)
+        if ($originHeader) {
+            return $pre
+                ->withHeader('Access-Control-Allow-Origin', $originHeader)
+                ->withHeader('Vary', 'Origin')
+                ->withHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+                ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+                ->withHeader('Access-Control-Allow-Credentials', 'true');
+        }
+        return $pre;
+    }
+
+    $response = $handler->handle($request);
+    if ($originHeader) {
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', $originHeader)
+            ->withHeader('Vary', 'Origin')
             ->withHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
             ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
             ->withHeader('Access-Control-Allow-Credentials', 'true');
     }
-
-    $response = $handler->handle($request);
-    return $response
-        ->withHeader('Access-Control-Allow-Origin', $origin)
-        ->withHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-        ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-        ->withHeader('Access-Control-Allow-Credentials', 'true');
+    return $response;
 });
 
 $display = true; // по умолчанию в dev

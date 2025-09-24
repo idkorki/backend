@@ -11,18 +11,33 @@ final class UserRepository
 
     public function findByEmail(string $email): ?array
     {
-        $st = $this->pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-        $st->execute([$email]);
-        $row = $st->fetch();
+        $sql = <<<SQL
+SELECT 
+    id,
+    email,
+    role,
+    password_hash         -- <<< ВАЖНО: вернуть именно это поле
+FROM users
+WHERE email = :email
+LIMIT 1
+SQL;
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':email' => $email]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
         return $row ?: null;
     }
 
-    public function findById(int $id): ?array
+    public function create(string $email, string $passwordHash, string $role = 'user'): int
     {
-        $st = $this->pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
-        $st->execute([$id]);
-        $row = $st->fetch();
-        return $row ?: null;
+        $sql = 'INSERT INTO users (email, password_hash, role) VALUES (:email, :password_hash, :role)';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':email'         => $email,
+            ':password_hash' => $passwordHash,
+            ':role'          => $role,
+        ]);
+        return (int)$this->pdo->lastInsertId();
     }
 }
 
